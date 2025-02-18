@@ -22,21 +22,21 @@
 - **Java / Spring Boot** – REST API
 - **Spring Security + JWT** – Authentication
 - **Spring Data JPA + PostgreSQL** – Database
-- **Google Maps API / OpenStreetMap** – Location & mapping
+- **OpenStreetMap** – Location & mapping
 - **Docker** – Containerization for deployment
 
 ### **Frontend**
-- **Vue 3 + TypeScript** – UI Framework
+- **Vue 3** – UI Framework
 - **Vue Router** – Navigation
-- **Pinia / Vuex** – State management
+- **Vuex** – State management
 - **Axios** – API calls
 - **Leaflet.js / Google Maps API** – Map display
 
 ### **Infrastructure**
 - **Docker + Docker Compose** – Local development
 - **CI/CD** – GitHub Actions or GitLab CI
-- **Deployment** – Heroku, Render, Fly.io, or VPS (DigitalOcean)
-- **Database Hosting** – Supabase, ElephantSQL, or self-hosted PostgreSQL
+- **Deployment**
+- **Database Hosting** – self-hosted PostgreSQL
 
 ---
 
