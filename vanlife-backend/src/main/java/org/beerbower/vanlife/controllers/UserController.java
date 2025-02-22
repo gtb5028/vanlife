@@ -1,5 +1,6 @@
 package org.beerbower.vanlife.controllers;
 
+import lombok.RequiredArgsConstructor;
 import org.beerbower.vanlife.entities.User;
 import org.beerbower.vanlife.repositories.UserRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,12 +15,9 @@ import java.util.List;
 @RequestMapping("/api/users")
 @CrossOrigin
 @PreAuthorize("permitAll()")
+@RequiredArgsConstructor
 public class UserController {
     private final UserRepository userRepository;
-
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 
     @GetMapping
     public List<User> getAllUsers() {
