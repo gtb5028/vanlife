@@ -33,7 +33,6 @@ public class User {
     @Column(nullable = false)
     private Boolean active;
 
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

@@ -3,10 +3,8 @@ package org.beerbower.vanlife.controllers;
 import org.beerbower.vanlife.entities.User;
 import org.beerbower.vanlife.repositories.UserRepository;
 import org.beerbower.vanlife.security.JwtUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -18,17 +16,20 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/login")
 public class LoginController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+    private final String jwtSecret;
+    private final long jwtExpiration ;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Value("${jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${jwt.expiration}")
-    private long jwtExpiration ;
+    public LoginController(UserRepository userRepository,
+                           BCryptPasswordEncoder passwordEncoder,
+                           @Value("${jwt.secret}") String jwtSecret,
+                           @Value("${jwt.expiration}") long jwtExpiration) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtSecret = jwtSecret;
+        this.jwtExpiration = jwtExpiration;
+    }
 
     @PostMapping
     public LoginResponseDto login(@RequestBody LoginRequestDto request) {

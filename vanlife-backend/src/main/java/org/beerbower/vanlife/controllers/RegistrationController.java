@@ -2,7 +2,6 @@ package org.beerbower.vanlife.controllers;
 
 import org.beerbower.vanlife.entities.User;
 import org.beerbower.vanlife.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,11 +16,13 @@ import java.util.Optional;
 @RequestMapping("/api/register")
 public class RegistrationController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    public RegistrationController(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @PostMapping
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequestDto request) {

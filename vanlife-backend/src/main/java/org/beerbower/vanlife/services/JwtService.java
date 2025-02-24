@@ -16,8 +16,12 @@ import java.util.Date;
  */
 @Service
 public class JwtService {
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final String jwtSecret;
+
+    // Constructor injection
+    public JwtService(@Value("${jwt.secret}") String jwtSecret) {
+        this.jwtSecret = jwtSecret;
+    }
 
     public TokenClaims validateToken(String token) {
         Key key = new SecretKeySpec(jwtSecret.getBytes(), SignatureAlgorithm.HS256.getJcaName());
