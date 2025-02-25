@@ -10,11 +10,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+import static org.beerbower.vanlife.entities.Role.ROLE_USER;
+
 @RestController
 @PreAuthorize("permitAll()")
 @CrossOrigin
 @RequestMapping("/api/register")
 public class RegistrationController {
+
+    private  static final String EMAIL_ALREADY_EXISTS_MSG = "Email already exists";
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -30,13 +34,13 @@ public class RegistrationController {
         // Check if email already exists
         Optional<User> existingUserByEmail = userRepository.findByEmail(request.email);
         if (existingUserByEmail.isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(EMAIL_ALREADY_EXISTS_MSG);
         }
 
         // Create new user
         User newUser = new User(
                 null, request.name, request.email, null,
-                passwordEncoder.encode(request.password), "ROLE_USER", true);
+                passwordEncoder.encode(request.password), ROLE_USER.name(), true);
 
         // Save user
         User createdUser = userRepository.save(newUser);
