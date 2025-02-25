@@ -46,3 +46,9 @@
 ```sh
 git clone https://github.com/yourusername/vanlife-navigator.git
 cd vanlife-navigator
+```
+### **2️⃣ Set Environment Variables**
+* DB_USERNAME
+* DB_PASSWORD
+* JWT_EXPIRATION
+* JWT_SECRET
