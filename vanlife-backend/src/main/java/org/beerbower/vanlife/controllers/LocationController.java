@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.beerbower.vanlife.entities.Location;
 import org.beerbower.vanlife.repositories.LocationRepository;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,5 +32,15 @@ public class LocationController {
     @ResponseStatus(HttpStatus.CREATED)
     public Location createLocation(@RequestBody Location location) {
         return locationRepository.save(location);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteLocation(@PathVariable long id) {
+        if (!locationRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        locationRepository.deleteById(id);
     }
 }
