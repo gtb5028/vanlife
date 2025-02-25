@@ -3,11 +3,11 @@ package org.beerbower.vanlife.controllers;
 import lombok.RequiredArgsConstructor;
 import org.beerbower.vanlife.entities.Location;
 import org.beerbower.vanlife.repositories.LocationRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,5 +22,16 @@ public class LocationController {
     @GetMapping
     public List<Location> getAllLocations() {
         return locationRepository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public Location getSingleLocation(@PathVariable long id) {
+        return locationRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Location createLocation(@RequestBody Location location) {
+        return locationRepository.save(location);
     }
 }
