@@ -19,6 +19,7 @@ import java.util.List;
 public class UserController {
     private final UserRepository userRepository;
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
