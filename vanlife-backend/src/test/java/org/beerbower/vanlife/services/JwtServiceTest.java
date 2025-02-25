@@ -15,29 +15,31 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestPropertySource("classpath:application.properties")
 class JwtServiceTest {
 
-    private JwtService jwtService = new JwtService(JWT_SECRET);;
-
-    private static final String JWT_SECRET = "RaDCFtk9mz7Uzvi3eQpCP1Y+3dJnn66NKjacD3Fwrus=";
-
+    private static final String TEST_EMAIL = "test@example.com";
+    private static final String TEST_ROLES = "ROLE_USER,ROLE_ADMIN";
+    private static final String TEST_JWT_SECRET = "testsecretkey12345678901234567890";
+    private static final String TEST_ISSUER = "test.issuer";
     private static final long EXPIRATION_TIME = 1000 * 60 * 10; // 10 minutes
+
+    private final JwtService jwtService = new JwtService(TEST_JWT_SECRET);;
 
     @Test
     void validateToken_ShouldExtractClaimsCorrectly() {
         // Generate a test JWT token
         User user = new User();
-        user.setEmail("test@example.com");
-        user.setRoles("ROLE_USER,ROLE_ADMIN");
-        String token = JwtUtils.createJwt(user, JWT_SECRET, EXPIRATION_TIME);
+        user.setEmail(TEST_EMAIL);
+        user.setRoles(TEST_ROLES);
+        String token = JwtUtils.createJwt(user, TEST_JWT_SECRET, TEST_ISSUER, EXPIRATION_TIME);
 
         // Act
         TokenClaims claims = jwtService.validateToken(token);
 
         // Assert
         assertNotNull(claims);
-        assertEquals("test@example.com", claims.subject());
+        assertEquals(TEST_EMAIL, claims.subject());
         assertNotNull(claims.expiresAt());
         assertNotNull(claims.issuedAt());
-        assertEquals("org.beerbower", claims.issuer());
-        assertEquals("ROLE_USER,ROLE_ADMIN", claims.auth());
+        assertEquals(TEST_ISSUER, claims.issuer());
+        assertEquals(TEST_ROLES, claims.auth());
     }
 }

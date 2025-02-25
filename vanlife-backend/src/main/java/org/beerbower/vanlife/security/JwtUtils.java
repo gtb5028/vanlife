@@ -13,12 +13,12 @@ import java.util.Date;
  */
 public class JwtUtils {
 
-    public static String createJwt(User user, String jwtSecret, long jwtExpiration) {
+    public static String createJwt(User user, String jwtSecret, String issuer, long jwtExpiration) {
         Key key = new SecretKeySpec(jwtSecret.getBytes(), SignatureAlgorithm.HS256.getJcaName());
 
         return Jwts.builder()
                 .setSubject(user.getEmail())
-                .setIssuer("org.beerbower")
+                .setIssuer(issuer)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(key)

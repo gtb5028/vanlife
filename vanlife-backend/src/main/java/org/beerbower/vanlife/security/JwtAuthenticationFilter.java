@@ -29,6 +29,10 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_TOKEN_PREFIX = "Bearer ";
+    private static final String INVALID_JWT_TOKEN_RESP = "Invalid JWT token: ";
+
     private final JwtService jwtService;
 
     public JwtAuthenticationFilter(JwtService jwtService) {
@@ -41,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     @NonNull
                                     FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
         String requestURI = request.getRequestURI();
 
         log.debug("Processing request to: {}", requestURI);
@@ -50,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.clearContext();
 
         // If there's no auth header, continue the chain without authentication
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith(BEARER_TOKEN_PREFIX)) {
             log.debug("No valid Authorization header found, continuing chain");
             filterChain.doFilter(request, response);
             return;
@@ -83,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("JWT validation failed", e);
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid JWT token: " + e.getMessage());
+            response.getWriter().write(INVALID_JWT_TOKEN_RESP + e.getMessage());
         }
     }
 }

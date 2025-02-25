@@ -15,33 +15,37 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class JwtUtilsTest {
 
-    private static final String SECRET_KEY = "testsecretkey12345678901234567890";
     private static final long EXPIRATION_TIME = 1000 * 60 * 10; // 10 minutes
+    private static final String TEST_SECRET_KEY = "testsecretkey12345678901234567890";
+    private static final String TEST_ISSUER = "test.issuer";
+    private static final String TEST_EMAIL = "test@example.com";
+    private static final String TEST_ROLES = "ROLE_USER,ROLE_ADMIN";
+    private static final String AUTH_CLAIMS = "auth";
 
     @Test
     void testCreateJwt() {
         // Arrange
         User user = new User();
-        user.setEmail("test@example.com");
-        user.setRoles("ROLE_USER,ROLE_ADMIN");
+        user.setEmail(TEST_EMAIL);
+        user.setRoles(TEST_ROLES);
 
         // Act
-        String token = JwtUtils.createJwt(user, SECRET_KEY, EXPIRATION_TIME);
+        String token = JwtUtils.createJwt(user, TEST_SECRET_KEY, TEST_ISSUER, EXPIRATION_TIME);
 
         // Assert
         assertNotNull(token);
 
         // Parse the token to validate its contents
         Claims claims = Jwts.parser()
-                .setSigningKey(new SecretKeySpec(SECRET_KEY.getBytes(), SignatureAlgorithm.HS256.getJcaName()))
+                .setSigningKey(new SecretKeySpec(TEST_SECRET_KEY.getBytes(), SignatureAlgorithm.HS256.getJcaName()))
                 .parseClaimsJws(token)
                 .getBody();
 
-        assertEquals("test@example.com", claims.getSubject());
-        assertEquals("org.beerbower", claims.getIssuer());
+        assertEquals(TEST_EMAIL, claims.getSubject());
+        assertEquals(TEST_ISSUER, claims.getIssuer());
         assertNotNull(claims.getIssuedAt());
         assertNotNull(claims.getExpiration());
         assertTrue(claims.getExpiration().after(new Date()));
-        assertEquals("ROLE_USER,ROLE_ADMIN", claims.get("auth"));
+        assertEquals(TEST_ROLES, claims.get(AUTH_CLAIMS));
     }
 }

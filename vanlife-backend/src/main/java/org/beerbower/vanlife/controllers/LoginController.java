@@ -19,15 +19,18 @@ public class LoginController {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final String jwtSecret;
+    private final String jwtIssuer;
     private final long jwtExpiration ;
 
     public LoginController(UserRepository userRepository,
                            BCryptPasswordEncoder passwordEncoder,
                            @Value("${jwt.secret}") String jwtSecret,
+                           @Value("${jwt.issuer}") String jwtIssuer,
                            @Value("${jwt.expiration}") long jwtExpiration) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtSecret = jwtSecret;
+        this.jwtIssuer = jwtIssuer;
         this.jwtExpiration = jwtExpiration;
     }
 
@@ -43,7 +46,7 @@ public class LoginController {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
-        return new LoginResponseDto(JwtUtils.createJwt(user, jwtSecret, jwtExpiration), user);
+        return new LoginResponseDto(JwtUtils.createJwt(user, jwtSecret, jwtIssuer, jwtExpiration), user);
     }
 
     /**
