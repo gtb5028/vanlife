@@ -19,7 +19,7 @@ import java.util.List;
 public class UserController {
     private final UserRepository userRepository;
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
