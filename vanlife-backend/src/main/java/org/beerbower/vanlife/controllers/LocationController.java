@@ -39,12 +39,13 @@ public class LocationController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Location createLocation(@RequestBody Location location, Principal principal) {
-        User user = userRepository.findByEmail(principal.getName()).orElse(null);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
+        User user = userRepository.findByEmail(principal.getName()).
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        location.setId(null);
         location.setCreatedBy(user);
-        location.setCreatedAt(LocalDateTime.now());
+        location.setCreatedAt(null);
+        location.setUpdatedAt(null);
         return locationRepository.save(location);
     }
 
