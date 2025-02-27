@@ -47,6 +47,46 @@ public class LocationController {
         location.setUpdatedAt(null);
         return locationRepository.save(location);
     }
+    
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/{id}")
+    public Location updateLocation(@PathVariable long id, @RequestBody Location location) {
+        Location existingLocation = locationRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        existingLocation.setName(location.getName());
+        existingLocation.setLatitude(location.getLatitude());
+        existingLocation.setLongitude(location.getLongitude());
+        existingLocation.setType(location.getType());
+        existingLocation.setDescription(location.getDescription());
+        return locationRepository.save(existingLocation);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/{id}")
+    public Location patchLocation(@PathVariable long id, @RequestBody Location location) {
+        Location existingLocation = locationRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (location.getName() != null) {
+            existingLocation.setName(location.getName());
+        }
+
+        if (location.getLatitude() != null) {
+            existingLocation.setLatitude(location.getLatitude());
+        }
+
+        if (location.getLongitude() != null) {
+            existingLocation.setLongitude(location.getLongitude());
+        }
+
+        if (location.getType() != null) {
+            existingLocation.setType(location.getType());
+        }
+
+        if (location.getDescription() != null) {
+            existingLocation.setDescription(location.getDescription());
+        }
+
+        return locationRepository.save(existingLocation);
+    }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
