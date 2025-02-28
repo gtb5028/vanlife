@@ -24,7 +24,26 @@ public class LocationController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Location> getAllLocations() {
+    public List<Location> getLocations(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Double minLat,
+            @RequestParam(required = false) Double maxLat,
+            @RequestParam(required = false) Double minLon,
+            @RequestParam(required = false) Double maxLon) {
+        
+        if (name != null) {
+            return locationRepository.findByNameContainingIgnoreCase(name);
+        }
+
+        if (type != null) {
+            return locationRepository.findByTypeContainingIgnoreCase(type);
+        }
+
+        if (minLat != null && maxLat != null && minLon != null && maxLon != null) {
+            return locationRepository.findByLatitudeBetweenAndLongitudeBetween(minLat, maxLat, minLon, maxLon);
+        }
+
         return locationRepository.findAll();
     }
 
