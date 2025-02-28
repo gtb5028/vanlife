@@ -23,3 +23,12 @@ INSERT INTO location (id, name, latitude, longitude, type, description, created_
 
 -- Reset the sequence value to avoid primary key conflicts
 SELECT setval('location_id_seq', (SELECT MAX(id) FROM location));
+
+-- Insert Reviews
+INSERT INTO review (id, user_id, location_id, rating, comment, created_at) VALUES
+(1, 7, 1, 4, 'Amazing views and peaceful atmosphere!', CURRENT_TIMESTAMP),
+(2, 7, 1, 2, 'Nice spot but can get crowded.', CURRENT_TIMESTAMP),
+(3, 7, 5, 7, 'Decent place, but the lake was a bit dirty.', CURRENT_TIMESTAMP);
+
+-- Reset the sequence value to avoid primary key conflicts
+SELECT setval('review_id_seq', (SELECT MAX(id) FROM review));
