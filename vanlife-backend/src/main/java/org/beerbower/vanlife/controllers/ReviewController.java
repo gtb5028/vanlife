@@ -36,11 +36,14 @@ public class ReviewController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Review addReview(@RequestBody Review review, Principal principal) {
+    public Review addReview(@PathVariable Long locationId, @RequestBody Review review, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        Location location = locationRepository.findById(locationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
 
         review.setId(null);
+        review.setLocation(location);
         review.setCreatedBy(user);
         review.setCreatedAt(null);
         review.setUpdatedAt(null);
