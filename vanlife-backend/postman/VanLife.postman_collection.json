@@ -64,12 +64,10 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:9000/api/users",
-					"protocol": "http",
+					"raw": "{{baseUrl}}/api/users",
 					"host": [
-						"localhost"
+						"{{baseUrl}}"
 					],
-					"port": "9000",
 					"path": [
 						"api",
 						"users"
@@ -122,14 +120,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{baseUrl}}/api/locations/4",
+					"raw": "{{baseUrl}}/api/locations/LOC-5",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
 						"api",
 						"locations",
-						"4"
+						"LOC-5"
 					]
 				}
 			},
@@ -160,14 +158,14 @@
 					}
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/locations/4",
+					"raw": "{{baseUrl}}/api/locations/LOC-4",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
 						"api",
 						"locations",
-						"4"
+						"LOC-4"
 					]
 				}
 			},
@@ -198,14 +196,14 @@
 					}
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/locations/4",
+					"raw": "{{baseUrl}}/api/locations/LOC-4",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
 						"api",
 						"locations",
-						"4"
+						"LOC-4"
 					]
 				}
 			},
@@ -227,14 +225,64 @@
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "{{baseUrl}}/api/locations/2",
+					"raw": "{{baseUrl}}/api/locations/LOC-2",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
 						"api",
 						"locations",
-						"2"
+						"LOC-2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Locations With Params",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/locations?minLat=46.8423&maxLat=46.9523&minLon=-121.8603&maxLon=-121.3603&type=campground",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"locations"
+					],
+					"query": [
+						{
+							"key": "minLat",
+							"value": "46.8423"
+						},
+						{
+							"key": "maxLat",
+							"value": "46.9523"
+						},
+						{
+							"key": "minLon",
+							"value": "-121.8603"
+						},
+						{
+							"key": "maxLon",
+							"value": "-121.3603"
+						},
+						{
+							"key": "type",
+							"value": "campground"
+						}
 					]
 				}
 			},
