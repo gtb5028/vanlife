@@ -12,14 +12,14 @@ INSERT INTO usr (id, email, name, picture, active, roles, password) VALUES
 SELECT setval('usr_id_seq', (SELECT MAX(id) FROM usr));
 
 -- Insert Locations
-INSERT INTO location (id, name, latitude, longitude, type, description, created_by_id, created_at) VALUES
-(1, 'Yellowstone National Park', 44.4280, -110.5885, 'PARK', 'Famous national park with geysers and wildlife.', 7, CURRENT_TIMESTAMP),
-(2, 'Grand Canyon', 36.1069, -112.1129, 'CANYON', 'Iconic canyon with breathtaking views.', 7, CURRENT_TIMESTAMP),
-(3, 'Yosemite National Park', 37.8651, -119.5383, 'PARK', 'Known for its waterfalls and giant sequoias.', 7, CURRENT_TIMESTAMP),
-(4, 'Mount Rainier', 46.8523, -121.7603, 'MOUNTAIN', 'A massive stratovolcano in Washington.', 7, CURRENT_TIMESTAMP),
-(5, 'Lake Tahoe', 39.0968, -120.0324, 'LAKE', 'A large freshwater lake in the Sierra Nevada.', 7, CURRENT_TIMESTAMP),
-(6, 'Zion National Park', 37.2982, -113.0263, 'PARK', 'Famous for towering sandstone cliffs.', 7, CURRENT_TIMESTAMP),
-(7, 'Arches National Park', 38.7331, -109.5925, 'PARK', 'Home to more than 2,000 natural stone arches.', 7, CURRENT_TIMESTAMP);
+INSERT INTO location (id, source, name, latitude, longitude, type, description, created_by_id, created_at) VALUES
+(1, 0, 'Yellowstone National Park', 44.4280, -110.5885, 'PARK', 'Famous national park with geysers and wildlife.', 7, CURRENT_TIMESTAMP),
+(2, 0, 'Grand Canyon', 36.1069, -112.1129, 'CANYON', 'Iconic canyon with breathtaking views.', 7, CURRENT_TIMESTAMP),
+(3, 0, 'Yosemite National Park', 37.8651, -119.5383, 'PARK', 'Known for its waterfalls and giant sequoias.', 7, CURRENT_TIMESTAMP),
+(4, 0, 'Mount Rainier', 46.8523, -121.7603, 'MOUNTAIN', 'A massive stratovolcano in Washington.', 7, CURRENT_TIMESTAMP),
+(5, 0, 'Lake Tahoe', 39.0968, -120.0324, 'LAKE', 'A large freshwater lake in the Sierra Nevada.', 7, CURRENT_TIMESTAMP),
+(6, 0, 'Zion National Park', 37.2982, -113.0263, 'PARK', 'Famous for towering sandstone cliffs.', 7, CURRENT_TIMESTAMP),
+(7, 0, 'Arches National Park', 38.7331, -109.5925, 'PARK', 'Home to more than 2,000 natural stone arches.', 7, CURRENT_TIMESTAMP);
 
 -- Reset the sequence value to avoid primary key conflicts
 SELECT setval('location_id_seq', (SELECT MAX(id) FROM location));
