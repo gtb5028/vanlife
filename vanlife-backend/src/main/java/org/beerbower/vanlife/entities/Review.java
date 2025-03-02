@@ -21,7 +21,7 @@ public class Review {
 
     @ManyToOne
     @JoinColumn(nullable = false)
-    private User user;
+    private User createdBy;
 
     @ManyToOne
     @JoinColumn(nullable = false)
