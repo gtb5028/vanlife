@@ -25,9 +25,21 @@ public class OverpassService {
         StringBuilder query = new StringBuilder("[out:json];(");
         for (Map<String, String> nodeElement : nodeElements) {
             for (Map.Entry<String, String> entry : nodeElement.entrySet()) {
-                query.append("node[\"").append(entry.getKey()).append("\"=\"").append(entry.getValue()).append("\"]");
+                query.append("node[\"").
+                        append(entry.getKey()).
+                        append("\"=\"").
+                        append(entry.getValue()).
+                        append("\"]");
             }
-            query.append("(").append(minLat).append(",").append(minLon).append(",").append(maxLat).append(",").append(maxLon).append(");");
+            query.append("(").
+                    append(minLat).
+                    append(",").
+                    append(minLon).
+                    append(",").
+                    append(maxLat).
+                    append(",").
+                    append(maxLon).
+                    append(");");
         }
         query.append(");out body;");
 

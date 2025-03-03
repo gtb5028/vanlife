@@ -28,7 +28,8 @@ public class LocationController {
             "restaurant", List.of(Map.of("amenity", "restaurant")),
             "rest_stop", List.of(Map.of("highway", "rest_area")),
             "campground", List.of(Map.of("tourism", "camp_site")),
-            "gym", List.of(Map.of("amenity", "gym"))
+            "gym", List.of(Map.of("amenity", "gym")),
+            "park", List.of(Map.of("leisure", "park"), Map.of("boundary", "national_park"))
     );
 
     private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
