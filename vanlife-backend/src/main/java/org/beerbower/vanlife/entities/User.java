@@ -2,10 +2,7 @@ package org.beerbower.vanlife.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Objects;
 
@@ -13,6 +10,7 @@ import java.util.Objects;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode
 @Entity
 @Table(name = "usr")
 public class User {
@@ -32,16 +30,4 @@ public class User {
     private String roles;
     @Column(nullable = false)
     private Boolean active;
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id) && Objects.equals(name, user.name) && Objects.equals(email, user.email) && Objects.equals(picture, user.picture) && Objects.equals(password, user.password) && Objects.equals(roles, user.roles) && Objects.equals(active, user.active);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, name, email, picture, password, roles, active);
-    }
 }
