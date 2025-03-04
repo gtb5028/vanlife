@@ -2,8 +2,10 @@ package org.beerbower.vanlife.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.beerbower.vanlife.entities.Location;
+import org.beerbower.vanlife.entities.LocationType;
 import org.beerbower.vanlife.entities.User;
 import org.beerbower.vanlife.repositories.LocationRepository;
+import org.beerbower.vanlife.repositories.LocationTypeRepository;
 import org.beerbower.vanlife.repositories.UserRepository;
 import org.beerbower.vanlife.services.overpass.OverpassService;
 import org.springframework.http.HttpStatus;
@@ -34,16 +36,16 @@ public class LocationController {
 
     private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
 
+    private final LocationTypeRepository locationTypeRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final OverpassService overpassService;
-
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
     public List<Location> getLocations(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String type,
+            @RequestParam(required = false) LocationType type,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLat,
             @RequestParam(required = false) Double minLon,
@@ -64,7 +66,7 @@ public class LocationController {
         }
 
         if (type != null) {
-            return locationRepository.findByTypeContainingIgnoreCase(type);
+            return locationRepository.findByType(type);
         }
         return locationRepository.findAll();
     }
@@ -116,7 +118,11 @@ public class LocationController {
         existingLocation.setName(location.getName());
         existingLocation.setLatitude(location.getLatitude());
         existingLocation.setLongitude(location.getLongitude());
-        existingLocation.setType(location.getType());
+
+        LocationType locationType = locationTypeRepository.findById(location.getType().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
+        existingLocation.setType(locationType);
+
         existingLocation.setDescription(location.getDescription());
         return locationRepository.save(existingLocation);
     }
@@ -145,7 +151,9 @@ public class LocationController {
         }
 
         if (location.getType() != null) {
-            existingLocation.setType(location.getType());
+            LocationType locationType = locationTypeRepository.findById(location.getType().getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
+            existingLocation.setType(locationType);
         }
 
         if (location.getDescription() != null) {
@@ -194,8 +202,11 @@ public class LocationController {
         Map<String, String> tags = node.tags();
         if (tags != null) {
             location.setName(tags.getOrDefault("name", "Unknown"));
-            location.setType(tags.getOrDefault("amenity", "Unknown"));
             location.setDescription(tags.getOrDefault("description", ""));
+
+            String typeTag = tags.getOrDefault("amenity", "Unknown");
+            LocationType locationType = locationTypeRepository.findByNameIgnoreCase(typeTag).getFirst();
+            location.setType(locationType);
         }
         return location;
     }

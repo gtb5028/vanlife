@@ -1,6 +1,5 @@
 package org.beerbower.vanlife.entities;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
@@ -49,8 +48,9 @@ public class Location {
     @Column(nullable = false)
     private Double longitude;
 
-    @Column(nullable = false)
-    private String type; // Example: "Campground", "Gas Station", "Restaurant"
+    @ManyToOne
+    @JoinColumn(name = "location_type_id", nullable = false)
+    private LocationType type;
 
     @Column(length = 500)
     private String description;

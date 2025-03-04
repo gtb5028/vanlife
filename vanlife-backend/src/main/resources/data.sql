@@ -11,15 +11,25 @@ INSERT INTO usr (id, email, name, picture, active, roles, password) VALUES
 -- Reset the sequence value to avoid primary key conflicts
 SELECT setval('usr_id_seq', (SELECT MAX(id) FROM usr));
 
+-- Insert default location types
+INSERT INTO location_type (id, name, description, overpass_tags) VALUES
+(1, 'Campground', 'Public or private campground', '["tourism"="camp_site"]'),
+(2, 'Parking', 'Public parking area', '["amenity"="parking"]["access"="public"]'),
+(3, 'Water Source', 'Public potable water source', '["amenity"="drinking_water"]["access"="public"]'),
+(4, 'National Park', 'Public or fee required for entry national park', '["amenity"="national_park"]');
+
+-- Reset the sequence value to avoid primary key conflicts
+SELECT setval('location_type_id_seq', (SELECT MAX(id) FROM location_type));
+
 -- Insert Locations
-INSERT INTO location (id, source, name, latitude, longitude, type, description, created_by_id, created_at) VALUES
-(1, 0, 'Yellowstone National Park', 44.4280, -110.5885, 'PARK', 'Famous national park with geysers and wildlife.', 7, CURRENT_TIMESTAMP),
-(2, 0, 'Grand Canyon', 36.1069, -112.1129, 'CANYON', 'Iconic canyon with breathtaking views.', 7, CURRENT_TIMESTAMP),
-(3, 0, 'Yosemite National Park', 37.8651, -119.5383, 'PARK', 'Known for its waterfalls and giant sequoias.', 7, CURRENT_TIMESTAMP),
-(4, 0, 'Mount Rainier', 46.8523, -121.7603, 'MOUNTAIN', 'A massive stratovolcano in Washington.', 7, CURRENT_TIMESTAMP),
-(5, 0, 'Lake Tahoe', 39.0968, -120.0324, 'LAKE', 'A large freshwater lake in the Sierra Nevada.', 7, CURRENT_TIMESTAMP),
-(6, 0, 'Zion National Park', 37.2982, -113.0263, 'PARK', 'Famous for towering sandstone cliffs.', 7, CURRENT_TIMESTAMP),
-(7, 0, 'Arches National Park', 38.7331, -109.5925, 'PARK', 'Home to more than 2,000 natural stone arches.', 7, CURRENT_TIMESTAMP);
+INSERT INTO location (id, source, name, latitude, longitude, location_type_id, description, created_by_id, created_at) VALUES
+(1, 0, 'Yellowstone National Park', 44.4280, -110.5885, 4, 'Famous national park with geysers and wildlife.', 7, CURRENT_TIMESTAMP),
+(2, 0, 'Grand Canyon', 36.1069, -112.1129, 4, 'Iconic canyon with breathtaking views.', 7, CURRENT_TIMESTAMP),
+(3, 0, 'Yosemite National Park', 37.8651, -119.5383, 4, 'Known for its waterfalls and giant sequoias.', 7, CURRENT_TIMESTAMP),
+(4, 0, 'Mount Rainier', 46.8523, -121.7603, 4, 'A massive stratovolcano in Washington.', 7, CURRENT_TIMESTAMP),
+(5, 0, 'Lake Tahoe', 39.0968, -120.0324, 4, 'A large freshwater lake in the Sierra Nevada.', 7, CURRENT_TIMESTAMP),
+(6, 0, 'Zion National Park', 37.2982, -113.0263, 4, 'Famous for towering sandstone cliffs.', 7, CURRENT_TIMESTAMP),
+(7, 0, 'Arches National Park', 38.7331, -109.5925, 4, 'Home to more than 2,000 natural stone arches.', 7, CURRENT_TIMESTAMP);
 
 -- Reset the sequence value to avoid primary key conflicts
 SELECT setval('location_id_seq', (SELECT MAX(id) FROM location));
