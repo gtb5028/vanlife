@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +27,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class LocationController {
 
+    // TODO need to change map and OverPass signatures to work for LocationType
     private static final Map<String, List<Map<String, String>>> LOCATION_TYPE_TO_TAGS = Map.of(
             "restaurant", List.of(Map.of("amenity", "restaurant")),
             "rest_stop", List.of(Map.of("highway", "rest_area")),
@@ -45,7 +47,7 @@ public class LocationController {
     @GetMapping
     public List<Location> getLocations(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) LocationType type,
+            @RequestParam(required = false) Long typeId,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLat,
             @RequestParam(required = false) Double minLon,
@@ -55,7 +57,10 @@ public class LocationController {
             return locationRepository.findByNameContainingIgnoreCase(name);
         }
 
-        if (type != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
+        LocationType type = locationTypeRepository.findById(typeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (typeId != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
             List<Map<String, String>> tags = LOCATION_TYPE_TO_TAGS.get(type);
             List<Location> locations = new java.util.ArrayList<>(
                     overpassService.fetchNodes(tags, minLat, minLon, maxLat, maxLon).
@@ -65,7 +70,7 @@ public class LocationController {
             return locations;
         }
 
-        if (type != null) {
+        if (typeId != null) {
             return locationRepository.findByType(type);
         }
         return locationRepository.findAll();
@@ -119,9 +124,7 @@ public class LocationController {
         existingLocation.setLatitude(location.getLatitude());
         existingLocation.setLongitude(location.getLongitude());
 
-        LocationType locationType = locationTypeRepository.findById(location.getType().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
-        existingLocation.setType(locationType);
+        // TODO Look into adding DTO for passing typeId for LocationType
 
         existingLocation.setDescription(location.getDescription());
         return locationRepository.save(existingLocation);
@@ -150,11 +153,7 @@ public class LocationController {
             existingLocation.setLongitude(location.getLongitude());
         }
 
-        if (location.getType() != null) {
-            LocationType locationType = locationTypeRepository.findById(location.getType().getId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
-            existingLocation.setType(locationType);
-        }
+        // TODO Look into adding DTO for passing typeId for LocationType
 
         if (location.getDescription() != null) {
             existingLocation.setDescription(location.getDescription());
@@ -204,6 +203,7 @@ public class LocationController {
             location.setName(tags.getOrDefault("name", "Unknown"));
             location.setDescription(tags.getOrDefault("description", ""));
 
+            // TODO need to change map and OverPass signatures to work for LocationType
             String typeTag = tags.getOrDefault("amenity", "Unknown");
             LocationType locationType = locationTypeRepository.findByNameIgnoreCase(typeTag).getFirst();
             location.setType(locationType);
