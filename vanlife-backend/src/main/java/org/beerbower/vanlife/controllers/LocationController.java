@@ -57,10 +57,9 @@ public class LocationController {
             return locationRepository.findByNameContainingIgnoreCase(name);
         }
 
-        LocationType type = locationTypeRepository.findById(typeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
         if (typeId != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
+            LocationType type = locationTypeRepository.findById(typeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             List<Map<String, String>> tags = LOCATION_TYPE_TO_TAGS.get(type);
             List<Location> locations = new java.util.ArrayList<>(
                     overpassService.fetchNodes(tags, minLat, minLon, maxLat, maxLon).
@@ -71,6 +70,8 @@ public class LocationController {
         }
 
         if (typeId != null) {
+            LocationType type = locationTypeRepository.findById(typeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             return locationRepository.findByType(type);
         }
         return locationRepository.findAll();
