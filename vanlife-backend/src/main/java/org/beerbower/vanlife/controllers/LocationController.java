@@ -2,8 +2,10 @@ package org.beerbower.vanlife.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.beerbower.vanlife.entities.Location;
+import org.beerbower.vanlife.entities.LocationType;
 import org.beerbower.vanlife.entities.User;
 import org.beerbower.vanlife.repositories.LocationRepository;
+import org.beerbower.vanlife.repositories.LocationTypeRepository;
 import org.beerbower.vanlife.repositories.UserRepository;
 import org.beerbower.vanlife.services.overpass.OverpassService;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,6 +27,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class LocationController {
 
+    // TODO need to change map and OverPass signatures to work for LocationType
     private static final Map<String, List<Map<String, String>>> LOCATION_TYPE_TO_TAGS = Map.of(
             "restaurant", List.of(Map.of("amenity", "restaurant")),
             "rest_stop", List.of(Map.of("highway", "rest_area")),
@@ -34,16 +38,16 @@ public class LocationController {
 
     private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
 
+    private final LocationTypeRepository locationTypeRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final OverpassService overpassService;
-
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
     public List<Location> getLocations(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Long typeId,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLat,
             @RequestParam(required = false) Double minLon,
@@ -53,7 +57,9 @@ public class LocationController {
             return locationRepository.findByNameContainingIgnoreCase(name);
         }
 
-        if (type != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
+        if (typeId != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
+            LocationType type = locationTypeRepository.findById(typeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             List<Map<String, String>> tags = LOCATION_TYPE_TO_TAGS.get(type);
             List<Location> locations = new java.util.ArrayList<>(
                     overpassService.fetchNodes(tags, minLat, minLon, maxLat, maxLon).
@@ -63,8 +69,10 @@ public class LocationController {
             return locations;
         }
 
-        if (type != null) {
-            return locationRepository.findByTypeContainingIgnoreCase(type);
+        if (typeId != null) {
+            LocationType type = locationTypeRepository.findById(typeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            return locationRepository.findByType(type);
         }
         return locationRepository.findAll();
     }
@@ -116,7 +124,9 @@ public class LocationController {
         existingLocation.setName(location.getName());
         existingLocation.setLatitude(location.getLatitude());
         existingLocation.setLongitude(location.getLongitude());
-        existingLocation.setType(location.getType());
+
+        // TODO Look into adding DTO for passing typeId for LocationType
+
         existingLocation.setDescription(location.getDescription());
         return locationRepository.save(existingLocation);
     }
@@ -144,9 +154,7 @@ public class LocationController {
             existingLocation.setLongitude(location.getLongitude());
         }
 
-        if (location.getType() != null) {
-            existingLocation.setType(location.getType());
-        }
+        // TODO Look into adding DTO for passing typeId for LocationType
 
         if (location.getDescription() != null) {
             existingLocation.setDescription(location.getDescription());
@@ -194,8 +202,12 @@ public class LocationController {
         Map<String, String> tags = node.tags();
         if (tags != null) {
             location.setName(tags.getOrDefault("name", "Unknown"));
-            location.setType(tags.getOrDefault("amenity", "Unknown"));
             location.setDescription(tags.getOrDefault("description", ""));
+
+            // TODO need to change map and OverPass signatures to work for LocationType
+            String typeTag = tags.getOrDefault("amenity", "Unknown");
+            LocationType locationType = locationTypeRepository.findByNameIgnoreCase(typeTag).getFirst();
+            location.setType(locationType);
         }
         return location;
     }
