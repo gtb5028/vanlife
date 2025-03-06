@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @JsonPropertyOrder({"id", "externalId", "source"})
 @Getter
@@ -54,6 +56,9 @@ public class Location {
 
     @Column(length = 500)
     private String description;
+
+    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    private Set<Review> reviews = new HashSet<Review>();
 
     @ManyToOne
     @JoinColumn(nullable = false)
