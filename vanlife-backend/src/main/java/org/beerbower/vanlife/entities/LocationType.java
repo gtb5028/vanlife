@@ -3,6 +3,9 @@ package org.beerbower.vanlife.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,6 +25,10 @@ public class LocationType {
     @Column(length = 500)
     private String description;
 
-    @Column(nullable = false, length = 500)
-    private String overpassTags;
+    @ElementCollection
+    @CollectionTable(name = "location_type_overpass_tags",
+            joinColumns = @JoinColumn(name = "location_type_id"))
+    @MapKeyColumn(name = "tag_key")
+    @Column(name = "tag_value")
+    private Map<String, String> overpassTags = new HashMap<>();
 }
