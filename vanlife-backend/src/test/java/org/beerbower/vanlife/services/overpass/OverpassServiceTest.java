@@ -1,5 +1,6 @@
 package org.beerbower.vanlife.services.overpass;
 
+import org.beerbower.vanlife.entities.LocationType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -33,11 +34,13 @@ public class OverpassServiceTest {
 
     @Test
     public void testFetchNodes() {
+
+
         // Arrange
-        List<Map<String, String>> nodeElements = List.of(
-                Map.of("highway", "rest_area"),
-                Map.of("tourism", "camp_site")
-        );
+        List<LocationType> locationTypes = List.of(
+                new LocationType( 1L, "Rest Area", "Rest area type.", Map.of("amenity", "rest_area")),
+                new LocationType( 2L, "Camp Site", "Camp site type.", Map.of("tourism", "camp_site"))
+                );
         double minLat = 10.0;
         double minLon = 20.0;
         double maxLat = 30.0;
@@ -54,7 +57,7 @@ public class OverpassServiceTest {
                 .thenReturn(mockResponseEntity);
 
         // Act
-        List<OverpassService.Node> result = overpassService.fetchNodes(nodeElements, minLat, minLon, maxLat, maxLon);
+        List<OverpassService.Node> result = overpassService.fetchNodes(locationTypes, minLat, minLon, maxLat, maxLon);
 
         // Assert
         assertEquals(2, result.size());

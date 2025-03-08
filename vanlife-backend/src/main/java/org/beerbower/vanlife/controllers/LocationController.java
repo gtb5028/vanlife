@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/locations")
@@ -27,16 +29,9 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class LocationController {
 
-    // TODO need to change map and OverPass signatures to work for LocationType
-    private static final Map<String, List<Map<String, String>>> LOCATION_TYPE_TO_TAGS = Map.of(
-            "restaurant", List.of(Map.of("amenity", "restaurant")),
-            "rest_stop", List.of(Map.of("highway", "rest_area")),
-            "campground", List.of(Map.of("tourism", "camp_site")),
-            "gym", List.of(Map.of("amenity", "gym")),
-            "park", List.of(Map.of("leisure", "park"), Map.of("boundary", "national_park"))
-    );
-
     private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
+
+    private static Map<Map.Entry<String, String>, List<LocationType>> locationTypeCache;
 
     private final LocationTypeRepository locationTypeRepository;
     private final LocationRepository locationRepository;
@@ -47,32 +42,34 @@ public class LocationController {
     @GetMapping
     public List<Location> getLocations(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) Long typeId,
+            @RequestParam(required = false) List<Long> typeIds,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLat,
             @RequestParam(required = false) Double minLon,
             @RequestParam(required = false) Double maxLon) {
-        
+
         if (name != null) {
             return locationRepository.findByNameContainingIgnoreCase(name);
         }
 
-        if (typeId != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
-            LocationType type = locationTypeRepository.findById(typeId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-            List<Map<String, String>> tags = LOCATION_TYPE_TO_TAGS.get(type);
-            List<Location> locations = new java.util.ArrayList<>(
-                    overpassService.fetchNodes(tags, minLat, minLon, maxLat, maxLon).
-                    stream().map(this::mapNodeToLocation).toList());
+        if (typeIds != null && minLat != null && maxLat != null && minLon != null && maxLon != null) {
+            List<LocationType> types = locationTypeRepository.findAllById(typeIds);
 
-            locations.addAll(locationRepository.findByLatitudeBetweenAndLongitudeBetween(minLat, maxLat, minLon, maxLon));
+            Map<Long, Location> externalReferenceLocations =
+                    locationRepository.findByTypeInAndLatitudeBetweenAndLongitudeBetweenAndExternal(types, minLat, maxLat, minLon, maxLon).
+                            stream().collect(Collectors.toMap(Location::getExternalId, l -> l));
+
+            List<Location> locations = new java.util.ArrayList<>(
+                    overpassService.fetchNodes(types, minLat, minLon, maxLat, maxLon).
+                            stream().map( n -> mapNodeToLocation(n, externalReferenceLocations.get(n.id()))).toList());
+
+            locations.addAll(locationRepository.findByTypeInAndLatitudeBetweenAndLongitudeBetween(types, minLat, maxLat, minLon, maxLon));
             return locations;
         }
 
-        if (typeId != null) {
-            LocationType type = locationTypeRepository.findById(typeId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-            return locationRepository.findByType(type);
+        if (typeIds != null) {
+            List<LocationType> types = locationTypeRepository.findAllById(typeIds);
+            return locationRepository.findByTypeIn(types);
         }
         return locationRepository.findAll();
     }
@@ -83,15 +80,14 @@ public class LocationController {
 
         try {
             LocationId locationId = parseLocationId(id);
-            switch (locationId.source) {
-                case OSM:
-                    OverpassService.Node node = overpassService.fetchNode(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-                    return mapNodeToLocation(node);
-                case LOC:
-                default:
-                    return locationRepository.findById(locationId.id).
-                            orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            if (locationId.source == Location.Source.OSM) {
+                OverpassService.Node node = overpassService.fetchNode(locationId.id).
+                        orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                Location referenceLocation = locationRepository.findByExternalId(locationId.id).orElse(null);
+                return mapNodeToLocation(node, referenceLocation);
             }
+            return locationRepository.findById(locationId.id).
+                    orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -100,20 +96,59 @@ public class LocationController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Location createLocation(@RequestBody Location location, Principal principal) {
+    public Location createLocation(@RequestBody LocationDto location, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
-        location.setInternalId(null);
-        location.setCreatedBy(user);
-        location.setCreatedAt(null);
-        location.setUpdatedAt(null);
+        Location newLocation = new Location();
+        newLocation.setSource(Location.Source.LOC);
+        newLocation.setName(location.name);
+        newLocation.setLatitude(location.latitude);
+        newLocation.setLongitude(location.longitude);
+        newLocation.setDescription(location.description);
+        LocationType locationType = locationTypeRepository.findById(location.typeId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
+        newLocation.setType(locationType);
+        newLocation.setCreatedBy(user);
+        return locationRepository.save(newLocation);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("{id}/metadata")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Location createLocationMetadata(@RequestBody Map<String, String> metadata, @PathVariable String id, Principal principal) {
+        LocationId locationId = parseLocationId(id);
+        Location location = null;
+        if (locationId.source == Location.Source.OSM) {
+            location = locationRepository.findByExternalId(locationId.id).orElse(null);
+            if (location == null) {
+                OverpassService.Node node = overpassService.fetchNode(locationId.id).
+                        orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                Location externalLocation = mapNodeToLocation(node, null);
+                externalLocation.setInternalId(null);
+                externalLocation.setSource(Location.Source.OSM);
+                externalLocation.setExternalId(locationId.id);
+                User user = userRepository.findByEmail(principal.getName()).
+                        orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+                externalLocation.setCreatedBy(user);
+                location = locationRepository.save(externalLocation);
+            }
+        } else {
+            location = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        }
+
+        Map<String, String> existingMetadata = location.getMetadata();
+        if (existingMetadata == null) {
+            existingMetadata = metadata;
+        } else {
+            existingMetadata.putAll(metadata);
+        }
+        location.setMetadata(existingMetadata);
         return locationRepository.save(location);
     }
-    
+
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}")
-    public Location updateLocation(@PathVariable String id, @RequestBody Location location) {
+    public Location updateLocation(@PathVariable String id, @RequestBody LocationDto location) {
 
         LocationId locationId = parseLocationId(id);
         if (locationId.source == Location.Source.OSM) {
@@ -121,19 +156,19 @@ public class LocationController {
         }
 
         Location existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        existingLocation.setName(location.getName());
-        existingLocation.setLatitude(location.getLatitude());
-        existingLocation.setLongitude(location.getLongitude());
+        existingLocation.setName(location.name);
+        existingLocation.setLatitude(location.latitude);
+        existingLocation.setLongitude(location.longitude);
+        existingLocation.setDescription(location.description);
+        LocationType locationType = locationTypeRepository.findById(location.typeId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
+        existingLocation.setType(locationType);
 
-        // TODO Look into adding DTO for passing typeId for LocationType
-
-        existingLocation.setDescription(location.getDescription());
         return locationRepository.save(existingLocation);
     }
 
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/{id}")
-    public Location patchLocation(@PathVariable String id, @RequestBody Location location) {
+    public Location patchLocation(@PathVariable String id, @RequestBody LocationDto location) {
 
         LocationId locationId = parseLocationId(id);
         if (locationId.source == Location.Source.OSM) {
@@ -142,24 +177,26 @@ public class LocationController {
 
         Location existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        if (location.getName() != null) {
-            existingLocation.setName(location.getName());
+        if (location.name != null) {
+            existingLocation.setName(location.name);
         }
 
-        if (location.getLatitude() != null) {
-            existingLocation.setLatitude(location.getLatitude());
+        if (location.latitude != null) {
+            existingLocation.setLatitude(location.latitude);
         }
 
-        if (location.getLongitude() != null) {
-            existingLocation.setLongitude(location.getLongitude());
+        if (location.longitude != null) {
+            existingLocation.setLongitude(location.longitude);
         }
 
-        // TODO Look into adding DTO for passing typeId for LocationType
-
-        if (location.getDescription() != null) {
-            existingLocation.setDescription(location.getDescription());
+        if (location.description != null) {
+            existingLocation.setDescription(location.description);
         }
 
+        if (location.typeId != null) {
+            LocationType locationType = locationTypeRepository.findById(location.typeId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
+            existingLocation.setType(locationType);
+        }
         return locationRepository.save(existingLocation);
     }
 
@@ -193,7 +230,7 @@ public class LocationController {
         }
     }
 
-    private Location mapNodeToLocation(OverpassService.Node node) {
+    private Location mapNodeToLocation(OverpassService.Node node, Location referenceLocation) {
         Location location = new Location();
         location.setExternalId(node.id());
         location.setSource(Location.Source.OSM);
@@ -204,13 +241,48 @@ public class LocationController {
             location.setName(tags.getOrDefault("name", "Unknown"));
             location.setDescription(tags.getOrDefault("description", ""));
 
-            // TODO need to change map and OverPass signatures to work for LocationType
-            String typeTag = tags.getOrDefault("amenity", "Unknown");
-            LocationType locationType = locationTypeRepository.findByNameIgnoreCase(typeTag).getFirst();
+            LocationType locationType = getLocationType(tags);
+            if (locationType == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown location type");
+            }
             location.setType(locationType);
+
+            location.setMetadata(tags);
+        }
+        if (referenceLocation != null) {
+            Map<String, String> metadata = new HashMap<>(location.getMetadata());
+            referenceLocation.getMetadata().forEach(metadata::putIfAbsent);
+            location.setMetadata(metadata);
         }
         return location;
     }
 
-    private record LocationId(Location.Source source, long id) {}
+    private synchronized LocationType getLocationType(Map<String, String> tags) {
+        if (locationTypeCache == null) {
+            locationTypeCache = new java.util.HashMap<>();
+            List<LocationType> locationTypes = locationTypeRepository.findAll();
+            for (LocationType type : locationTypes) {
+                for (Map.Entry<String, String> entry : type.getOverpassTags().entrySet()) {
+                    locationTypeCache.computeIfAbsent(entry, k -> new java.util.ArrayList<>()).add(type);
+                }
+            }
+        }
+        for (Map.Entry<String, String> entry : tags.entrySet()) {
+            List<LocationType> types = locationTypeCache.get(entry);
+            if (types != null) {
+                for (LocationType type : types) {
+                    if (tags.entrySet().containsAll(type.getOverpassTags().entrySet())) {
+                        return type;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public record LocationDto(String name, Double latitude, Double longitude, String description, Long typeId) {
+    }
+
+    private record LocationId(Location.Source source, long id) {
+    }
 }

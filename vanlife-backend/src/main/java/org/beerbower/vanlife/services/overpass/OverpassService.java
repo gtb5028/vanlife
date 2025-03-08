@@ -1,14 +1,12 @@
 package org.beerbower.vanlife.services.overpass;
 
+import org.beerbower.vanlife.entities.LocationType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class OverpassService {
@@ -20,26 +18,31 @@ public class OverpassService {
         this.restTemplate = restTemplate;
     }
 
-    public List<Node> fetchNodes(List<Map<String, String>> nodeElements, double minLat, double minLon, double maxLat, double maxLon) {
+    public List<Node> fetchNodes(List<LocationType> types, double minLat, double minLon, double maxLat, double maxLon) {
 
         StringBuilder query = new StringBuilder("[out:json];(");
-        for (Map<String, String> nodeElement : nodeElements) {
-            for (Map.Entry<String, String> entry : nodeElement.entrySet()) {
-                query.append("node[\"").
-                        append(entry.getKey()).
-                        append("\"=\"").
-                        append(entry.getValue()).
-                        append("\"]");
+        for (LocationType type : types) {
+
+            Map<String, String> overpassTags = type.getOverpassTags();
+            if (overpassTags != null && !overpassTags.isEmpty()) {
+                query.append("node");
+                for (Map.Entry<String, String> entry : overpassTags.entrySet()) {
+                    query.append("[\"").
+                            append(entry.getKey()).
+                            append("\"=\"").
+                            append(entry.getValue()).
+                            append("\"]");
+                }
+                query.append("(").
+                        append(minLat).
+                        append(",").
+                        append(minLon).
+                        append(",").
+                        append(maxLat).
+                        append(",").
+                        append(maxLon).
+                        append(");");
             }
-            query.append("(").
-                    append(minLat).
-                    append(",").
-                    append(minLon).
-                    append(",").
-                    append(maxLat).
-                    append(",").
-                    append(maxLon).
-                    append(");");
         }
         query.append(");out body;");
 

@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @JsonPropertyOrder({"id", "externalId", "source"})
 @Getter
@@ -32,6 +34,7 @@ public class Location {
     private Long internalId;
 
     @JsonIgnore
+    @Column(name = "external_id", unique = true)
     private Long externalId;
 
     @JsonIgnore
@@ -64,6 +67,13 @@ public class Location {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @ElementCollection
+    @CollectionTable(name = "location_metadata",
+            joinColumns = @JoinColumn(name = "location_id"))
+    @MapKeyColumn(name = "attribute_key")
+    @Column(name = "attribute_value")
+    private Map<String, String> metadata = new HashMap<>();
 
     @Transient
     public String getId() {

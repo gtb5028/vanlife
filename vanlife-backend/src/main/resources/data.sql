@@ -12,11 +12,21 @@ INSERT INTO usr (id, email, name, picture, active, roles, password) VALUES
 SELECT setval('usr_id_seq', (SELECT MAX(id) FROM usr));
 
 -- Insert default location types
-INSERT INTO location_type (id, name, description, overpass_tags) VALUES
-(1, 'Campground', 'Public or private campground', '["tourism"="camp_site"]'),
-(2, 'Parking', 'Public parking area', '["amenity"="parking"]["access"="public"]'),
-(3, 'Water Source', 'Public potable water source', '["amenity"="drinking_water"]["access"="public"]'),
-(4, 'National Park', 'Public or fee required for entry national park', '["amenity"="national_park"]');
+INSERT INTO location_type (id, name, description) VALUES
+(1, 'Campground', 'Public or private campground'),
+(2, 'Parking', 'Public parking area'),
+(3, 'Water Source', 'Public potable water source'),
+(4, 'National Park', 'Public or fee required for entry national park'),
+(5, 'Restaurant', 'Public or private restaurant');
+
+INSERT INTO location_type_overpass_tags(location_type_id, tag_key, tag_value) VALUES
+(1, 'tourism', 'camp_site'),
+(2, 'amenity', 'parking'),
+(2, 'access', 'public'),
+(3, 'amenity', 'drinking_water'),
+(3, 'access', 'public'),
+(4, 'boundary', 'national_park'),
+(5, 'amenity', 'restaurant');
 
 -- Reset the sequence value to avoid primary key conflicts
 SELECT setval('location_type_id_seq', (SELECT MAX(id) FROM location_type));
