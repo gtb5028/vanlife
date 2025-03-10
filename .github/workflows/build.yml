@@ -23,4 +23,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build and Test
-        run: ./mvnw clean verify
+        run: |
+          chmod +x vanlife-backend/mvnw
+          cd vanlife-backend
+          ./mvnw clean verify
