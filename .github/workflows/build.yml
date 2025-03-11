@@ -22,8 +22,5 @@ jobs:
           java-version: '23'
           distribution: 'temurin'
 
-      - name: Build and Test
-        run: |
-          chmod +x vanlife-backend/mvnw
-          cd vanlife-backend
-          ./mvnw clean verify
+      - name: Build with Maven
+        run: mvn -B package --file vanlife-backend/pom.xml
