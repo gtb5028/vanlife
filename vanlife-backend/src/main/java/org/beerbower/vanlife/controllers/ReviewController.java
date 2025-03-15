@@ -23,25 +23,28 @@ public class ReviewController {
     private final ReviewRepository reviewRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
+    private final LocationUtils locationUtils;
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Review> getReviewsByLocation(@PathVariable Long locationId) {
-        Location location = locationRepository.findById(locationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
-
-        return reviewRepository.findByLocation(location);
+    public List<Review> getReviewsByLocation(@PathVariable String locationId) {
+        return reviewRepository.findByLocation(locationUtils.getLocation(locationId));
     }
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Review addReview(@PathVariable Long locationId, @RequestBody Review review, Principal principal) {
+    public Review addReview(@PathVariable String id, @RequestBody Review review, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        Location location = locationRepository.findById(locationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
 
+        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        Location location = null;
+        if (locationId.source() == Location.Source.OSM) {
+            location = locationUtils.getReferenceLocation(principal, locationId);
+        } else {
+            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        }
         review.setId(null);
         review.setLocation(location);
         review.setCreatedBy(user);
