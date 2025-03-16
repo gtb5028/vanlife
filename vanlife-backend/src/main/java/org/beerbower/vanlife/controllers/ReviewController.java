@@ -13,10 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/locations/{locationId}/reviews")
+@RequestMapping("/api/locations/{id}/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
 
@@ -27,8 +28,16 @@ public class ReviewController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Review> getReviewsByLocation(@PathVariable String locationId) {
-        return reviewRepository.findByLocation(locationUtils.getLocation(locationId));
+    public List<Review> getReviewsByLocation(@PathVariable String id) {
+
+        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        Location location = null;
+        if (locationId.source() == Location.Source.OSM) {
+            location = locationRepository.findByExternalId(locationId.id()).orElse(null);
+        } else {
+            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        }
+        return location == null ? new ArrayList<>() : reviewRepository.findByLocation(location);
     }
 
     @PreAuthorize("isAuthenticated()")

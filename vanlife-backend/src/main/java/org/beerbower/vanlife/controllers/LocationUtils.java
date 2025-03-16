@@ -66,9 +66,19 @@ public class LocationUtils {
             location.setMetadata(tags);
         }
         if (referenceLocation != null) {
+            location.setName(referenceLocation.getName());
+            location.setDescription(referenceLocation.getDescription());
+            location.setType(referenceLocation.getType());
+            location.setLatitude(referenceLocation.getLatitude());
+            location.setLongitude(referenceLocation.getLongitude());
+
             Map<String, String> metadata = new HashMap<>(location.getMetadata());
             referenceLocation.getMetadata().forEach(metadata::putIfAbsent);
             location.setMetadata(metadata);
+
+            location.setCreatedBy(referenceLocation.getCreatedBy());
+            location.setCreatedAt(referenceLocation.getCreatedAt());
+            location.setUpdatedAt(referenceLocation.getUpdatedAt());
         }
         return location;
     }
