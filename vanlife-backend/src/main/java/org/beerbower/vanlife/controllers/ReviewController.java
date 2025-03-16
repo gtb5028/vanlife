@@ -31,7 +31,7 @@ public class ReviewController {
     public List<Review> getReviewsByLocation(@PathVariable String id) {
 
         LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
-        Location location = null;
+        Location location;
         if (locationId.source() == Location.Source.OSM) {
             location = locationRepository.findByExternalId(locationId.id()).orElse(null);
         } else {
@@ -48,9 +48,9 @@ public class ReviewController {
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
         LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
-        Location location = null;
+        Location location;
         if (locationId.source() == Location.Source.OSM) {
-            location = locationUtils.getReferenceLocation(principal, locationId);
+            location = locationUtils.getOrCreateReferenceLocation(principal, locationId);
         } else {
             location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }

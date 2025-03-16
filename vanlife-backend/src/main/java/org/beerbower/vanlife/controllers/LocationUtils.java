@@ -22,17 +22,33 @@ import java.util.regex.Pattern;
 @Component
 @RequiredArgsConstructor
 public class LocationUtils {
+    /**
+     * Pattern for parsing location IDs.
+     * <p>
+     * The pattern matches strings of the form "LOC-12345" where "LOC" is a three-letter
+     * source code and "12345" is a numeric ID.
+     */
     private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
 
+    /**
+     * Cache for location types.
+     * <p>
+     * The cache maps a pair of tag key and value to a list of LocationType objects.
+     * This is used to avoid repeated database queries for the same tag.
+     */
     private static Map<Map.Entry<String, String>, List<LocationType>> locationTypeCache;
-
 
     private final LocationTypeRepository locationTypeRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final OverpassService overpassService;
 
-
+    /**
+     * Parse a location ID string into a LocationId object.
+     * @param id The location ID string to parse.
+     * @return The parsed LocationId object.
+     * @throws IllegalArgumentException if the ID is invalid or cannot be parsed.
+     */
     public static LocationController.LocationId parseLocationId(String id) throws IllegalArgumentException {
         try {
             long parsedId = Long.parseLong(id);
@@ -46,6 +62,12 @@ public class LocationUtils {
         }
     }
 
+    /**
+     * Maps an OverpassService.Node to a Location object.
+     * @param node The OverpassService.Node to map.
+     * @param referenceLocation The reference location to use for additional information.
+     * @return The mapped Location object.
+     */
     public Location mapNodeToLocation(OverpassService.Node node, Location referenceLocation) {
         Location location = new Location();
         location.setExternalId(node.id());
@@ -83,13 +105,18 @@ public class LocationUtils {
         return location;
     }
 
+    /**
+     * Get the location type based on the provided tags.
+     * @param tags The tags to use for determining the location type.
+     * @return The matching LocationType, or null if no match is found.
+     */
     public synchronized LocationType getLocationType(Map<String, String> tags) {
         if (locationTypeCache == null) {
             locationTypeCache = new java.util.HashMap<>();
             List<LocationType> locationTypes = locationTypeRepository.findAll();
             for (LocationType type : locationTypes) {
                 for (Map.Entry<String, String> entry : type.getOverpassTags().entrySet()) {
-                    locationTypeCache.computeIfAbsent(entry, k -> new java.util.ArrayList<>()).add(type);
+                    locationTypeCache.computeIfAbsent(entry, _ -> new java.util.ArrayList<>()).add(type);
                 }
             }
         }
@@ -106,6 +133,12 @@ public class LocationUtils {
         return null;
     }
 
+    /**
+     * Get a location by its ID.
+     * @param id The ID of the location to retrieve.
+     * @return The Location object.
+     * @throws ResponseStatusException if the location is not found.
+     */
     public Location getLocation(String id) {
         try {
             LocationController.LocationId locationId = parseLocationId(id);
@@ -122,7 +155,14 @@ public class LocationUtils {
         }
     }
 
-    public Location getReferenceLocation(Principal principal, LocationController.LocationId locationId) {
+    /**
+     * Get or create a reference location based on the provided location ID.
+     * @param principal The principal of the user requesting the location.
+     * @param locationId The ID of the location to retrieve or create.
+     * @return The Location object.
+     * @throws ResponseStatusException if the location is not found or cannot be created.
+     */
+    public Location getOrCreateReferenceLocation(Principal principal, LocationController.LocationId locationId) {
         Location location = locationRepository.findByExternalId(locationId.id()).orElse(null);
         if (location == null) {
             OverpassService.Node node = overpassService.fetchNode(locationId.id()).
@@ -138,9 +178,4 @@ public class LocationUtils {
         }
         return location;
     }
-
-
-
-
-
 }

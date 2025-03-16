@@ -101,9 +101,9 @@ public class LocationController {
     @ResponseStatus(HttpStatus.CREATED)
     public Location createLocationMetadata(@RequestBody Map<String, String> metadata, @PathVariable String id, Principal principal) {
         LocationId locationId = LocationUtils.parseLocationId(id);
-        Location location = null;
+        Location location;
         if (locationId.source == Location.Source.OSM) {
-            location = locationUtils.getReferenceLocation(principal, locationId);
+            location = locationUtils.getOrCreateReferenceLocation(principal, locationId);
         } else {
             location = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
@@ -120,7 +120,7 @@ public class LocationController {
         LocationId locationId = LocationUtils.parseLocationId(id);
         Location existingLocation;
         if (locationId.source == Location.Source.OSM) {
-            existingLocation = locationUtils.getReferenceLocation(principal, locationId);
+            existingLocation = locationUtils.getOrCreateReferenceLocation(principal, locationId);
         } else {
             existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
@@ -143,7 +143,7 @@ public class LocationController {
         LocationId locationId = LocationUtils.parseLocationId(id);
         Location existingLocation;
         if (locationId.source == Location.Source.OSM) {
-            existingLocation = locationUtils.getReferenceLocation(principal, locationId);
+            existingLocation = locationUtils.getOrCreateReferenceLocation(principal, locationId);
         } else {
             existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
