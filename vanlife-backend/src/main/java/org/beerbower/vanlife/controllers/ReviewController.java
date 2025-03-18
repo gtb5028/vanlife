@@ -13,35 +13,47 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/locations/{locationId}/reviews")
+@RequestMapping("/api/locations/{id}/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
 
     private final ReviewRepository reviewRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
+    private final LocationUtils locationUtils;
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Review> getReviewsByLocation(@PathVariable Long locationId) {
-        Location location = locationRepository.findById(locationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
+    public List<Review> getReviewsByLocation(@PathVariable String id) {
 
-        return reviewRepository.findByLocation(location);
+        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        Location location;
+        if (locationId.source() == Location.Source.OSM) {
+            location = locationRepository.findByExternalId(locationId.id()).orElse(null);
+        } else {
+            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        }
+        return location == null ? new ArrayList<>() : reviewRepository.findByLocation(location);
     }
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Review addReview(@PathVariable Long locationId, @RequestBody Review review, Principal principal) {
+    public Review addReview(@PathVariable String id, @RequestBody Review review, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        Location location = locationRepository.findById(locationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
 
+        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        Location location;
+        if (locationId.source() == Location.Source.OSM) {
+            location = locationUtils.getOrCreateReferenceLocation(principal, locationId);
+        } else {
+            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        }
         review.setId(null);
         review.setLocation(location);
         review.setCreatedBy(user);

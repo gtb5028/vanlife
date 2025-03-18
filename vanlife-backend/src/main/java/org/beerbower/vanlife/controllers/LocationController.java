@@ -14,12 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
@@ -29,14 +25,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LocationController {
 
-    private static final Pattern ID_PATTERN = Pattern.compile("^([A-Z]{3})-(\\d+)$");
 
-    private static Map<Map.Entry<String, String>, List<LocationType>> locationTypeCache;
 
     private final LocationTypeRepository locationTypeRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final OverpassService overpassService;
+    private final LocationUtils locationUtils;
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
@@ -61,7 +56,7 @@ public class LocationController {
 
             List<Location> locations = new java.util.ArrayList<>(
                     overpassService.fetchNodes(types, minLat, minLon, maxLat, maxLon).
-                            stream().map( n -> mapNodeToLocation(n, externalReferenceLocations.get(n.id()))).toList());
+                            stream().map( n -> locationUtils.mapNodeToLocation(n, externalReferenceLocations.get(n.id()))).toList());
 
             locations.addAll(locationRepository.findByTypeInAndLatitudeBetweenAndLongitudeBetween(types, minLat, maxLat, minLon, maxLon));
             return locations;
@@ -77,21 +72,10 @@ public class LocationController {
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public Location getSingleLocation(@PathVariable String id) {
-
-        try {
-            LocationId locationId = parseLocationId(id);
-            if (locationId.source == Location.Source.OSM) {
-                OverpassService.Node node = overpassService.fetchNode(locationId.id).
-                        orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-                Location referenceLocation = locationRepository.findByExternalId(locationId.id).orElse(null);
-                return mapNodeToLocation(node, referenceLocation);
-            }
-            return locationRepository.findById(locationId.id).
-                    orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
+        return locationUtils.getLocation(id);
     }
+
+
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping
@@ -116,46 +100,31 @@ public class LocationController {
     @PostMapping("{id}/metadata")
     @ResponseStatus(HttpStatus.CREATED)
     public Location createLocationMetadata(@RequestBody Map<String, String> metadata, @PathVariable String id, Principal principal) {
-        LocationId locationId = parseLocationId(id);
-        Location location = null;
+        LocationId locationId = LocationUtils.parseLocationId(id);
+        Location location;
         if (locationId.source == Location.Source.OSM) {
-            location = locationRepository.findByExternalId(locationId.id).orElse(null);
-            if (location == null) {
-                OverpassService.Node node = overpassService.fetchNode(locationId.id).
-                        orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-                Location externalLocation = mapNodeToLocation(node, null);
-                externalLocation.setInternalId(null);
-                externalLocation.setSource(Location.Source.OSM);
-                externalLocation.setExternalId(locationId.id);
-                User user = userRepository.findByEmail(principal.getName()).
-                        orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-                externalLocation.setCreatedBy(user);
-                location = locationRepository.save(externalLocation);
-            }
+            location = locationUtils.getOrCreateReferenceLocation(principal, locationId);
         } else {
             location = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
 
-        Map<String, String> existingMetadata = location.getMetadata();
-        if (existingMetadata == null) {
-            existingMetadata = metadata;
-        } else {
-            existingMetadata.putAll(metadata);
-        }
-        location.setMetadata(existingMetadata);
+        location.getMetadata().putAll(metadata);
         return locationRepository.save(location);
     }
 
+
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}")
-    public Location updateLocation(@PathVariable String id, @RequestBody LocationDto location) {
+    public Location updateLocation(@PathVariable String id, @RequestBody LocationDto location, Principal principal) {
 
-        LocationId locationId = parseLocationId(id);
+        LocationId locationId = LocationUtils.parseLocationId(id);
+        Location existingLocation;
         if (locationId.source == Location.Source.OSM) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot update external location");
+            existingLocation = locationUtils.getOrCreateReferenceLocation(principal, locationId);
+        } else {
+            existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
 
-        Location existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         existingLocation.setName(location.name);
         existingLocation.setLatitude(location.latitude);
         existingLocation.setLongitude(location.longitude);
@@ -163,20 +132,21 @@ public class LocationController {
         LocationType locationType = locationTypeRepository.findById(location.typeId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
         existingLocation.setType(locationType);
 
-        return locationRepository.save(existingLocation);
+        locationRepository.save(existingLocation);
+        return locationUtils.getLocation(id);
     }
 
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/{id}")
-    public Location patchLocation(@PathVariable String id, @RequestBody LocationDto location) {
+    public Location patchLocation(@PathVariable String id, @RequestBody LocationDto location, Principal principal) {
 
-        LocationId locationId = parseLocationId(id);
+        LocationId locationId = LocationUtils.parseLocationId(id);
+        Location existingLocation;
         if (locationId.source == Location.Source.OSM) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot patch external location");
+            existingLocation = locationUtils.getOrCreateReferenceLocation(principal, locationId);
+        } else {
+            existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
-
-        Location existingLocation = locationRepository.findById(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
         if (location.name != null) {
             existingLocation.setName(location.name);
         }
@@ -197,7 +167,8 @@ public class LocationController {
             LocationType locationType = locationTypeRepository.findById(location.typeId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid location type ID"));
             existingLocation.setType(locationType);
         }
-        return locationRepository.save(existingLocation);
+        locationRepository.save(existingLocation);
+        return locationUtils.getLocation(id);
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -205,84 +176,23 @@ public class LocationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteLocation(@PathVariable String id) {
 
-        LocationId locationId = parseLocationId(id);
+        LocationId locationId = LocationUtils.parseLocationId(id);
         if (locationId.source == Location.Source.OSM) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete external location");
+            Location location = locationRepository.findByExternalId(locationId.id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            locationRepository.delete(location);
+        } else {
+            if (!locationRepository.existsById(locationId.id)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            }
+            locationRepository.deleteById(locationId.id);
         }
-
-        if (!locationRepository.existsById(locationId.id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        locationRepository.deleteById(locationId.id);
     }
 
 
-    private static LocationId parseLocationId(String id) throws IllegalArgumentException {
-        try {
-            long parsedId = Long.parseLong(id);
-            return new LocationId(Location.Source.LOC, parsedId);
-        } catch (NumberFormatException e) {
-            Matcher matcher = ID_PATTERN.matcher(id);
-            if (!matcher.matches()) {
-                throw new IllegalArgumentException("Invalid location ID: " + id);
-            }
-            return new LocationId(Location.Source.valueOf(matcher.group(1)), Long.parseLong(matcher.group(2)));
-        }
-    }
-
-    private Location mapNodeToLocation(OverpassService.Node node, Location referenceLocation) {
-        Location location = new Location();
-        location.setExternalId(node.id());
-        location.setSource(Location.Source.OSM);
-        location.setLatitude(node.lat());
-        location.setLongitude(node.lon());
-        Map<String, String> tags = node.tags();
-        if (tags != null) {
-            location.setName(tags.getOrDefault("name", "Unknown"));
-            location.setDescription(tags.getOrDefault("description", ""));
-
-            LocationType locationType = getLocationType(tags);
-            if (locationType == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown location type");
-            }
-            location.setType(locationType);
-
-            location.setMetadata(tags);
-        }
-        if (referenceLocation != null) {
-            Map<String, String> metadata = new HashMap<>(location.getMetadata());
-            referenceLocation.getMetadata().forEach(metadata::putIfAbsent);
-            location.setMetadata(metadata);
-        }
-        return location;
-    }
-
-    private synchronized LocationType getLocationType(Map<String, String> tags) {
-        if (locationTypeCache == null) {
-            locationTypeCache = new java.util.HashMap<>();
-            List<LocationType> locationTypes = locationTypeRepository.findAll();
-            for (LocationType type : locationTypes) {
-                for (Map.Entry<String, String> entry : type.getOverpassTags().entrySet()) {
-                    locationTypeCache.computeIfAbsent(entry, k -> new java.util.ArrayList<>()).add(type);
-                }
-            }
-        }
-        for (Map.Entry<String, String> entry : tags.entrySet()) {
-            List<LocationType> types = locationTypeCache.get(entry);
-            if (types != null) {
-                for (LocationType type : types) {
-                    if (tags.entrySet().containsAll(type.getOverpassTags().entrySet())) {
-                        return type;
-                    }
-                }
-            }
-        }
-        return null;
-    }
 
     public record LocationDto(String name, Double latitude, Double longitude, String description, Long typeId) {
     }
 
-    private record LocationId(Location.Source source, long id) {
+    public record LocationId(Location.Source source, long id) {
     }
 }
