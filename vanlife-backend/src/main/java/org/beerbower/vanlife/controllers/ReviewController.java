@@ -62,4 +62,14 @@ public class ReviewController {
 
         return reviewRepository.save(review);
     }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteReview(@PathVariable Long id) {
+        Review review = reviewRepository.findById(id).
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        reviewRepository.delete(review);
+    }
 }
