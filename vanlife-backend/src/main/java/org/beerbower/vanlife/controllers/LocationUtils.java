@@ -116,7 +116,7 @@ public class LocationUtils {
             List<LocationType> locationTypes = locationTypeRepository.findAll();
             for (LocationType type : locationTypes) {
                 for (Map.Entry<String, String> entry : type.getOverpassTags().entrySet()) {
-                    locationTypeCache.computeIfAbsent(entry, _ -> new java.util.ArrayList<>()).add(type);
+                    locationTypeCache.computeIfAbsent(entry, x -> new java.util.ArrayList<>()).add(type);
                 }
             }
         }

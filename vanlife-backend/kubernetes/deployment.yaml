@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vanlife-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vanlife-backend
+  template:
+    metadata:
+      labels:
+        app: vanlife-backend
+    spec:
+      containers:
+        - name: vanlife-backend
+          image: ghcr.io/tbeerbower/vanlife-backend:latest
+          ports:
+            - containerPort: 9000
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-service:5432/mydatabase
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: vanlife-secret
+                  key: DB_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vanlife-secret
+                  key: DB_PASSWORD
+            - name: JWT_EXPIRATION
+              valueFrom:
+                secretKeyRef:
+                  name: vanlife-secret
+                  key: JWT_EXPIRATION
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vanlife-secret
+                  key: JWT_SECRET
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vanlife-backend-service
+spec:
+  selector:
+    app: vanlife-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9000
+  type: ClusterIP

@@ -71,7 +71,7 @@ public class OverpassService {
         ResponseEntity<OverpassResponse> response = restTemplate.getForEntity(encodedQuery, OverpassResponse.class);
 
         OverpassResponse body = response.getBody();
-        return body == null ? Optional.empty() : Optional.of(body.elements.getFirst());
+        return body == null ? Optional.empty() : Optional.of(body.elements.get(0));
     }
 
     public record Node(long id, double lat, double lon, Map<String, String> tags) {

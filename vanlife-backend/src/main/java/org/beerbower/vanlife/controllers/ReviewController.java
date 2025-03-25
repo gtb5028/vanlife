@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/locations/{id}/reviews")
+@RequestMapping("/api/locations/{locationId}/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
 
@@ -28,14 +28,14 @@ public class ReviewController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Review> getReviewsByLocation(@PathVariable String id) {
+    public List<Review> getReviewsByLocation(@PathVariable String locationId) {
 
-        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        LocationController.LocationId id = LocationUtils.parseLocationId(locationId);
         Location location;
-        if (locationId.source() == Location.Source.OSM) {
-            location = locationRepository.findByExternalId(locationId.id()).orElse(null);
+        if (id.source() == Location.Source.OSM) {
+            location = locationRepository.findByExternalId(id.id()).orElse(null);
         } else {
-            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            location = locationRepository.findById(id.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
         return location == null ? new ArrayList<>() : reviewRepository.findByLocation(location);
     }
@@ -43,16 +43,16 @@ public class ReviewController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Review addReview(@PathVariable String id, @RequestBody Review review, Principal principal) {
+    public Review addReview(@PathVariable String locationId, @RequestBody Review review, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
-        LocationController.LocationId locationId = LocationUtils.parseLocationId(id);
+        LocationController.LocationId id = LocationUtils.parseLocationId(locationId);
         Location location;
-        if (locationId.source() == Location.Source.OSM) {
-            location = locationUtils.getOrCreateReferenceLocation(principal, locationId);
+        if (id.source() == Location.Source.OSM) {
+            location = locationUtils.getOrCreateReferenceLocation(principal, id);
         } else {
-            location = locationRepository.findById(locationId.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            location = locationRepository.findById(id.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         }
         review.setId(null);
         review.setLocation(location);
