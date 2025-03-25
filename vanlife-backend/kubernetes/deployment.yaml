@@ -52,6 +52,6 @@ spec:
   type: NodePort  # Changed from ClusterIP
   ports:
     - protocol: TCP
-      port: 80        # Service port inside Kubernetes
+      port: 9000      # Service port inside Kubernetes
       targetPort: 9000 # Matches container port
       nodePort: 30009  # External port (must be 30000-32767)
