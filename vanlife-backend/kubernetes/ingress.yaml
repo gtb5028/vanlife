@@ -3,10 +3,12 @@ kind: Ingress
 metadata:
   name: vanlife-ingress
   annotations:
-    metallb.universe.tf/loadBalancerIP: "192.168.1.90"  # Your host's LAN IP
+    metallb.universe.tf/loadBalancerIP: "192.168.1.90"
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-    - http:
+    - host: vanlife.local  # Optional but recommended for clarity
+      http:
         paths:
           - path: /api
             pathType: Prefix
@@ -14,4 +16,4 @@ spec:
               service:
                 name: vanlife-backend-service
                 port:
-                  number: 9000
+                  number: 9000  # Your backend port (unchanged)
