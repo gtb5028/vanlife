@@ -49,9 +49,9 @@ metadata:
 spec:
   selector:
     app: vanlife-backend
-  type: LoadBalancer  # Changed from NodePort
+  type: ClusterIP  # Changed from LoadBalancer (Ingress handles external traffic)
   ports:
     - protocol: TCP
-      port: 9000      # Service port inside Kubernetes
+      port: 9000      # Service port (used by Ingress)
       targetPort: 9000 # Matches container port
-      # nodePort: 30009  # Optional - LoadBalancer will automatically assign one
+      # Remove nodePort (not needed for ClusterIP)
