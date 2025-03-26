@@ -49,9 +49,9 @@ metadata:
 spec:
   selector:
     app: vanlife-backend
-  type: NodePort  # Changed from ClusterIP
+  type: LoadBalancer  # Changed from NodePort
   ports:
     - protocol: TCP
       port: 9000      # Service port inside Kubernetes
       targetPort: 9000 # Matches container port
-      nodePort: 30009  # External port (must be 30000-32767)
+      # nodePort: 30009  # Optional - LoadBalancer will automatically assign one
