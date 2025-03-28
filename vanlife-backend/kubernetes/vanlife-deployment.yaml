@@ -18,40 +18,25 @@ spec:
           ports:
             - containerPort: 9000
           env:
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgres-service:5432/vanlife
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vanlife-secret
+                  key: DB_URL
+            - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: vanlife-secret
                   key: DB_USERNAME
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: vanlife-secret
                   key: DB_PASSWORD
             - name: JWT_EXPIRATION
-              valueFrom:
-                secretKeyRef:
-                  name: vanlife-secret
-                  key: JWT_EXPIRATION
+              value: "86400000"
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: vanlife-secret
                   key: JWT_SECRET
-      restartPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: vanlife-backend-service
-spec:
-  selector:
-    app: vanlife-backend
-  type: ClusterIP  # Changed from LoadBalancer (Ingress handles external traffic)
-  ports:
-    - protocol: TCP
-      port: 9000      # Service port (used by Ingress)
-      targetPort: 9000 # Matches container port
-      # Remove nodePort (not needed for ClusterIP)
